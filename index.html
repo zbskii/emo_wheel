@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emotion Wheel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;1,16..72,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    background: #F4F2EC;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: #2b2b2b;
+    padding: 40px 32px 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .container { width: 100%; max-width: 1180px; }
+  header { margin-bottom: 28px; }
+  .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #A08A6A; }
+  h1 { font-size: 30px; font-weight: 700; margin: 8px 0 6px; letter-spacing: -0.4px; }
+  .sub { margin: 0; font-size: 15px; color: #6f6a60; max-width: 560px; line-height: 1.5; }
+  .layout { display: flex; gap: 40px; align-items: stretch; flex-wrap: wrap; }
+  .wheel-col { flex: 1 1 520px; min-width: 320px; display: flex; align-items: flex-start; justify-content: center; }
+  .wheel-wrap { width: 100%; max-width: min(100%, 82vh); aspect-ratio: 1 / 1; }
+  .wheel-wrap svg { display: block; overflow: visible; width: 100%; height: 100%; }
+  aside { flex: 0 0 320px; min-width: 280px; display: flex; flex-direction: column; }
+  .panel {
+    position: sticky; top: 24px;
+    background: #FBFAF6; border: 1px solid #E7E2D6; border-radius: 18px;
+    padding: 26px 24px; box-shadow: 0 1px 2px rgba(60,50,30,0.04);
+  }
+  .panel-label { font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: #B6AC97; margin-bottom: 14px; }
+  .empty-ring { width: 46px; height: 46px; border-radius: 50%; border: 2px dashed #D8D0BE; margin-bottom: 18px; }
+  .empty-lead { margin: 0; font-family: 'Newsreader', serif; font-size: 20px; line-height: 1.45; color: #4a4537; }
+  .empty-sub { margin: 14px 0 0; font-size: 13.5px; color: #8a8273; line-height: 1.55; }
+  .crumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .chip { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 999px; color: #3a3527; font-size: 13px; font-weight: 600; line-height: 1.1; }
+  .leaf-row { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+  .leaf-dot { width: 16px; height: 16px; border-radius: 50%; flex: none; }
+  .leaf-name { margin: 0; font-family: 'Newsreader', serif; font-weight: 500; font-size: 32px; letter-spacing: -0.3px; line-height: 1.05; }
+  .leaf-def { margin: 0 0 4px; font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.6; color: #564f40; }
+  .hint { margin: 16px 0 0; font-size: 13px; color: #9a917f; line-height: 1.5; display: flex; gap: 7px; align-items: flex-start; }
+  .hint b { color: #C2A26B; font-weight: 700; }
+  .reset { margin-top: 24px; width: 100%; padding: 11px 16px; border: 1px solid #DAD3C3; background: #fff; color: #5b5446; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13.5px; font-weight: 600; border-radius: 11px; cursor: pointer; letter-spacing: 0.2px; transition: background .15s, border-color .15s; }
+  .reset:hover { background: #F0ECE1; border-color: #CCC3B0; }
+  .slice { transition: fill-opacity .28s ease, stroke .15s ease; }
+  .label { pointer-events: none; user-select: none; transition: opacity .28s ease; fill: #2b2b2b; font-family: 'Plus Jakarta Sans', sans-serif; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="eyebrow">Emotion Wheel</div>
+    <h1>Name what you're feeling</h1>
+    <p class="sub">Begin at the centre with a core emotion, then step outward ring by ring to find the precise word.</p>
+  </header>
+  <div class="layout">
+    <div class="wheel-col">
+      <div class="wheel-wrap" id="wheelWrap"></div>
+    </div>
+    <aside>
+      <div class="panel" id="panel"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var CORES = [
+    ['Fearful', [
+      ['Scared', ['Helpless', 'Frightened']],
+      ['Anxious', ['Overwhelmed', 'Worried']],
+      ['Insecure', ['Inadequate', 'Inferior']],
+      ['Weak', ['Worthless', 'Insignificant']],
+      ['Rejected', ['Excluded', 'Persecuted']],
+      ['Threatened', ['Nervous', 'Exposed']]
+    ]],
+    ['Angry', [
+      ['Let down', ['Betrayed', 'Resentful']],
+      ['Humiliated', ['Disrespected', 'Ridiculed']],
+      ['Bitter', ['Indignant', 'Violated']],
+      ['Mad', ['Furious', 'Jealous']],
+      ['Aggressive', ['Provoked', 'Hostile']],
+      ['Frustrated', ['Infuriated', 'Annoyed']],
+      ['Distant', ['Withdrawn', 'Numb']],
+      ['Critical', ['Sceptical', 'Dismissive']]
+    ]],
+    ['Disgusted', [
+      ['Disapproving', ['Judgmental', 'Embarrassed']],
+      ['Disappointed', ['Appalled', 'Revolted']],
+      ['Awful', ['Nauseated', 'Detestable']],
+      ['Repelled', ['Horrified', 'Hesitant']]
+    ]],
+    ['Sad', [
+      ['Hurt', ['Embarrassed', 'Disappointed']],
+      ['Depressed', ['Inferior', 'Empty']],
+      ['Guilty', ['Remorseful', 'Ashamed']],
+      ['Despair', ['Powerless', 'Grief']],
+      ['Vulnerable', ['Fragile', 'Victimised']],
+      ['Lonely', ['Isolated', 'Abandoned']]
+    ]],
+    ['Happy', [
+      ['Optimistic', ['Inspired', 'Hopeful']],
+      ['Trusting', ['Intimate', 'Sensitive']],
+      ['Peaceful', ['Thankful', 'Loving']],
+      ['Powerful', ['Creative', 'Courageous']],
+      ['Accepted', ['Valued', 'Respected']],
+      ['Proud', ['Confident', 'Successful']],
+      ['Interested', ['Inquisitive', 'Curious']],
+      ['Content', ['Joyful', 'Free']],
+      ['Playful', ['Cheeky', 'Aroused']]
+    ]],
+    ['Surprised', [
+      ['Excited', ['Eager', 'Energetic']],
+      ['Amazed', ['Astonished', 'Awe']],
+      ['Confused', ['Perplexed', 'Disillusioned']],
+      ['Startled', ['Dismayed', 'Shocked']]
+    ]],
+    ['Bad', [
+      ['Tired', ['Sleepy', 'Unfocused']],
+      ['Stressed', ['Out of control', 'Overwhelmed']],
+      ['Busy', ['Rushed', 'Pressured']],
+      ['Bored', ['Apathetic', 'Indifferent']]
+    ]]
+  ];
+
+  var COLORS = [
+    { c: '#E8A33D', s: '#F1C079', t: '#F7DCAE' },
+    { c: '#E2574C', s: '#EC8A82', t: '#F4BDB8' },
+    { c: '#888B91', s: '#AEB0B5', t: '#CFD0D3' },
+    { c: '#5B8FC9', s: '#8FB4DB', t: '#C0D5EC' },
+    { c: '#EFC23E', s: '#F4D575', t: '#F9E7AB' },
+    { c: '#9B7FC4', s: '#BBA6D7', t: '#D8CCE9' },
+    { c: '#5FB48A', s: '#92CDAF', t: '#C1E2D2' }
+  ];
+
+  var DEFS = {
+    Fearful: 'An anxious sense of threat or danger, whether real or imagined.',
+    Angry: 'A strong feeling of displeasure toward something unfair or hurtful.',
+    Disgusted: 'A powerful aversion or revulsion toward something offensive.',
+    Sad: 'A heavy feeling of loss, sorrow, or unhappiness.',
+    Happy: 'A warm sense of joy, contentment, and wellbeing.',
+    Surprised: 'A jolt of reaction to something sudden or unexpected.',
+    Bad: 'A low, depleted sense of discomfort or unease.',
+    Scared: 'Frightened by a threat you perceive around you.',
+    Anxious: 'Uneasy worry about what might happen next.',
+    Insecure: 'Lacking confidence or a sense of safety.',
+    Weak: 'Feeling powerless or drained of strength.',
+    Rejected: 'Feeling pushed away or unwanted by others.',
+    Threatened: 'Sensing danger or hostility directed at you.',
+    Helpless: 'Unable to act or change your situation.',
+    Frightened: 'Sharply afraid in the present moment.',
+    Overwhelmed: 'Swamped by more than you can handle.',
+    Worried: 'Preoccupied with anxious, looping thoughts.',
+    Inadequate: 'Feeling not good enough for what is asked.',
+    Inferior: 'Feeling lesser than the people around you.',
+    Worthless: 'Feeling that you have no value at all.',
+    Insignificant: 'Feeling small, overlooked, and unimportant.',
+    Excluded: 'Left out of a group or activity.',
+    Persecuted: 'Feeling unfairly targeted or mistreated.',
+    Nervous: 'Tense and on edge about something ahead.',
+    Exposed: 'Vulnerable and unprotected to others view.',
+    'Let down': 'Disappointed by someone who failed you.',
+    Humiliated: 'Shamed or degraded in front of others.',
+    Bitter: 'Holding resentment over a hurt that lingers.',
+    Mad: 'Intensely and openly angry.',
+    Aggressive: 'Driven to confront, push, or attack.',
+    Frustrated: 'Blocked from reaching what you want.',
+    Distant: 'Emotionally withdrawn and detached.',
+    Critical: 'Harshly focused on faults and flaws.',
+    Betrayed: 'Hurt by a trust that was broken.',
+    Resentful: 'Carrying lingering anger over unfair treatment.',
+    Disrespected: 'Treated without regard for your worth.',
+    Ridiculed: 'Mocked or made fun of by others.',
+    Indignant: 'Angry at something you find unjust.',
+    Violated: 'Feeling your boundaries have been breached.',
+    Furious: 'Filled with extreme, burning anger.',
+    Jealous: 'Resentful of what someone else has.',
+    Provoked: 'Goaded or pushed into anger.',
+    Hostile: 'Openly antagonistic and unfriendly.',
+    Infuriated: 'Boiling over with rage.',
+    Annoyed: 'Mildly irritated and put out.',
+    Withdrawn: 'Pulled away from contact with others.',
+    Numb: 'Emotionally shut down and unfeeling.',
+    Sceptical: 'Doubtful and unconvinced.',
+    Dismissive: 'Treating something as unworthy of attention.',
+    Disapproving: 'Judging something as wrong or unworthy.',
+    Disappointed: 'Let down by an expectation that went unmet.',
+    Awful: 'Feeling deeply unwell or repulsed.',
+    Repelled: 'Driven away by something offensive.',
+    Judgmental: 'Quick to find fault and condemn.',
+    Embarrassed: 'Self-conscious over something awkward.',
+    Appalled: 'Shocked and dismayed by what you see.',
+    Revolted: 'Filled with strong disgust.',
+    Nauseated: 'Sickened, as if turning your stomach.',
+    Detestable: 'Feeling something deserves intense dislike.',
+    Horrified: 'Struck with horror and shock.',
+    Hesitant: 'Reluctant and unsure about going forward.',
+    Hurt: 'Emotionally wounded by someone or something.',
+    Depressed: 'Persistently low, flat, and joyless.',
+    Guilty: 'Burdened by having done something wrong.',
+    Despair: 'A complete loss of hope.',
+    Vulnerable: 'Exposed and easily hurt.',
+    Lonely: 'Painfully isolated and disconnected.',
+    Empty: 'Hollow and drained of feeling.',
+    Remorseful: 'Deeply regretful for a wrong done.',
+    Ashamed: 'Painfully aware of a personal failing.',
+    Powerless: 'Without control or influence over things.',
+    Grief: 'Deep sorrow, especially after a loss.',
+    Fragile: 'Easily broken or overwhelmed.',
+    Victimised: 'Feeling wronged or taken advantage of.',
+    Isolated: 'Cut off and alone from others.',
+    Abandoned: 'Left alone by those you relied on.',
+    Optimistic: 'Hopeful and positive about what is ahead.',
+    Trusting: 'Open and confident in other people.',
+    Peaceful: 'Calm, settled, and at ease.',
+    Powerful: 'Strong, capable, and in command.',
+    Accepted: 'Welcomed and valued just as you are.',
+    Proud: 'Pleased and gratified by an achievement.',
+    Interested: 'Curious and actively engaged.',
+    Content: 'Quietly satisfied with how things are.',
+    Playful: 'Lighthearted, spirited, and fun.',
+    Inspired: 'Moved and energised to create or act.',
+    Hopeful: 'Expecting good things to come.',
+    Intimate: 'Emotionally close and connected.',
+    Sensitive: 'Tender and finely attuned to feelings.',
+    Thankful: 'Grateful for what you have.',
+    Loving: 'Full of warmth and care.',
+    Creative: 'Brimming with new ideas.',
+    Courageous: 'Brave in the face of fear.',
+    Valued: 'Recognised as genuinely important.',
+    Respected: 'Held in esteem by others.',
+    Confident: 'Sure of yourself and your abilities.',
+    Successful: 'Having achieved what you set out to do.',
+    Inquisitive: 'Eager to question and explore.',
+    Curious: 'Drawn to learn and discover more.',
+    Joyful: 'Filled with bright delight.',
+    Free: 'Unburdened and at liberty.',
+    Cheeky: 'Playfully bold and mischievous.',
+    Aroused: 'Stirred, stimulated, and alert.',
+    Excited: 'Eagerly anticipating something to come.',
+    Amazed: 'Struck with wonder and astonishment.',
+    Confused: 'Unable to make sense of things.',
+    Startled: 'Jolted by something sudden.',
+    Eager: 'Keen and impatient to begin.',
+    Energetic: 'Full of lively, restless energy.',
+    Astonished: 'Greatly and suddenly surprised.',
+    Awe: 'Overwhelmed by wonder and reverence.',
+    Perplexed: 'Puzzled and unable to understand.',
+    Disillusioned: 'Let down by a belief that fell away.',
+    Dismayed: 'Distressed and discouraged.',
+    Shocked: 'Stunned by something unexpected.',
+    Tired: 'Drained of energy and needing rest.',
+    Stressed: 'Under heavy mental or emotional pressure.',
+    Busy: 'Overloaded with too much to do.',
+    Bored: 'Restless and lacking stimulation.',
+    Sleepy: 'Drowsy and longing for rest.',
+    Unfocused: 'Unable to gather your concentration.',
+    'Out of control': 'Unable to manage what is happening.',
+    Rushed: 'Pressed and hurried for time.',
+    Pressured: 'Pushed hard by demands and expectations.',
+    Apathetic: 'Without interest or motivation.',
+    Indifferent: 'Unmoved and unconcerned either way.'
+  };
+
+  var GEOM = { cx: 500, cy: 500, R0: 150, R1: 315, R2: 480 };
+  var DIM = 0.13;
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  // ---- state ----
+  var state = { core: null, sec: null, ter: null, hover: null };
+
+  // ---- geometry helpers ----
+  function ptn(r, deg) {
+    var rad = deg * Math.PI / 180;
+    return [GEOM.cx + r * Math.sin(rad), GEOM.cy - r * Math.cos(rad)];
+  }
+  function ptStr(r, deg) {
+    var p = ptn(r, deg);
+    return p[0].toFixed(2) + ' ' + p[1].toFixed(2);
+  }
+  function arcPath(a0, a1, rIn, rOut) {
+    var large = (a1 - a0) > 180 ? 1 : 0;
+    var p1 = ptStr(rOut, a0), p2 = ptStr(rOut, a1);
+    if (rIn === 0) {
+      return 'M ' + GEOM.cx + ' ' + GEOM.cy + ' L ' + p1 + ' A ' + rOut + ' ' + rOut + ' 0 ' + large + ' 1 ' + p2 + ' Z';
+    }
+    var p3 = ptStr(rIn, a1), p4 = ptStr(rIn, a0);
+    return 'M ' + p1 + ' A ' + rOut + ' ' + rOut + ' 0 ' + large + ' 1 ' + p2 +
+           ' L ' + p3 + ' A ' + rIn + ' ' + rIn + ' 0 ' + large + ' 0 ' + p4 + ' Z';
+  }
+
+  // ---- build slice descriptors once ----
+  function buildSlices() {
+    var out = [];
+    var totalTer = CORES.reduce(function (n, c) { return n + c[1].length * 2; }, 0);
+    var unit = 360 / totalTer;
+    var ang = 0;
+    CORES.forEach(function (core, ci) {
+      var secs = core[1];
+      var span = secs.length * 2 * unit;
+      var a0c = ang, a1c = ang + span;
+      out.push({ level: 0, ci: ci, si: null, ti: null, name: core[0], a0: a0c, a1: a1c, rIn: 0, rOut: GEOM.R0, color: COLORS[ci].c });
+      var sa = a0c;
+      secs.forEach(function (sec, si) {
+        var a0s = sa, a1s = sa + 2 * unit;
+        out.push({ level: 1, ci: ci, si: si, ti: null, name: sec[0], a0: a0s, a1: a1s, rIn: GEOM.R0, rOut: GEOM.R1, color: COLORS[ci].s });
+        var ta = a0s;
+        sec[1].forEach(function (terName, ti) {
+          out.push({ level: 2, ci: ci, si: si, ti: ti, name: terName, a0: ta, a1: ta + unit, rIn: GEOM.R1, rOut: GEOM.R2, color: COLORS[ci].t });
+          ta += unit;
+        });
+        sa = a1s;
+      });
+      ang = a1c;
+    });
+    out.forEach(function (s) { s.d = arcPath(s.a0, s.a1, s.rIn, s.rOut); s.key = keyOf(s); });
+    return out;
+  }
+
+  function keyOf(s) {
+    return s.level + '-' + s.ci + '-' + (s.si == null ? 'x' : s.si) + '-' + (s.ti == null ? 'x' : s.ti);
+  }
+
+  // ---- selection logic ----
+  function isOn(s) {
+    if (state.core == null) return true;
+    if (s.ci !== state.core) return false;
+    if (s.level === 0) return true;
+    if (state.sec == null) return true;
+    if (s.si !== state.sec) return false;
+    if (s.level === 1) return true;
+    if (state.ter == null) return true;
+    return s.ti === state.ter;
+  }
+  function isClickable(s) {
+    if (s.level === 0) return true;
+    if (s.level === 1) return state.core != null && s.ci === state.core;
+    return state.core != null && s.ci === state.core && state.sec != null && s.si === state.sec;
+  }
+  function isLeaf(s) {
+    if (state.ter != null) return s.level === 2 && s.ci === state.core && s.si === state.sec && s.ti === state.ter;
+    if (state.sec != null) return s.level === 1 && s.ci === state.core && s.si === state.sec;
+    if (state.core != null) return s.level === 0 && s.ci === state.core;
+    return false;
+  }
+  function pick(s) {
+    if (s.level === 0) state = { core: s.ci, sec: null, ter: null, hover: null };
+    else if (s.level === 1) state = { core: state.core, sec: s.si, ter: null, hover: null };
+    else state = { core: state.core, sec: state.sec, ter: s.ti, hover: null };
+    update();
+  }
+  function reset() {
+    state = { core: null, sec: null, ter: null, hover: null };
+    update();
+  }
+
+  // ---- build the SVG once, keep node references ----
+  var SLICES = buildSlices();
+  var nodes = {}; // key -> { path, text }
+
+  function buildSVG() {
+    var svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 1000 1000');
+    var pathFrag = document.createDocumentFragment();
+    var textFrag = document.createDocumentFragment();
+
+    SLICES.forEach(function (s) {
+      var path = document.createElementNS(SVGNS, 'path');
+      path.setAttribute('class', 'slice');
+      path.setAttribute('d', s.d);
+      path.setAttribute('fill', s.color);
+      path.addEventListener('click', function () { if (isClickable(s)) pick(s); });
+      path.addEventListener('mouseenter', function () { if (isClickable(s)) { state.hover = s.key; update(); } });
+      path.addEventListener('mouseleave', function () { if (state.hover === s.key) { state.hover = null; update(); } });
+      pathFrag.appendChild(path);
+
+      var mid = (s.a0 + s.a1) / 2;
+      var lr = s.level === 0 ? GEOM.R0 * 0.58 : (s.level === 1 ? (GEOM.R0 + GEOM.R1) / 2 : (GEOM.R1 + GEOM.R2) / 2);
+      var tp = ptn(lr, mid);
+      var text = document.createElementNS(SVGNS, 'text');
+      text.setAttribute('class', 'label');
+      text.setAttribute('x', tp[0].toFixed(2));
+      text.setAttribute('y', tp[1].toFixed(2));
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'central');
+      text.setAttribute('font-size', s.level === 0 ? 21 : (s.level === 1 ? 14.5 : 11.8));
+      text.setAttribute('font-weight', s.level === 0 ? 700 : (s.level === 1 ? 600 : 500));
+      if (s.level === 0) text.setAttribute('letter-spacing', '0.4');
+      var rot = mid - 90;
+      if (mid > 180) rot += 180;
+      text.setAttribute('transform', 'rotate(' + rot.toFixed(2) + ' ' + tp[0].toFixed(2) + ' ' + tp[1].toFixed(2) + ')');
+      text.textContent = s.name;
+      textFrag.appendChild(text);
+
+      nodes[s.key] = { path: path, text: text };
+    });
+
+    svg.appendChild(pathFrag);
+    svg.appendChild(textFrag);
+    document.getElementById('wheelWrap').appendChild(svg);
+  }
+
+  // ---- apply current state to existing nodes ----
+  function update() {
+    SLICES.forEach(function (s) {
+      var n = nodes[s.key];
+      var on = isOn(s);
+      var clk = isClickable(s);
+      var leaf = isLeaf(s);
+      var hov = state.hover === s.key && clk;
+      n.path.setAttribute('fill-opacity', on ? 1 : DIM);
+      n.path.setAttribute('stroke', leaf ? '#2b2b2b' : (hov ? '#3a3a3a' : '#ffffff'));
+      n.path.setAttribute('stroke-width', leaf ? 2.4 : (hov ? 2 : (s.level === 2 ? 1 : 1.4)));
+      n.path.setAttribute('stroke-opacity', on ? 0.95 : 0.28);
+      n.path.style.cursor = clk ? 'pointer' : 'default';
+      n.text.setAttribute('opacity', on ? 1 : Math.min(0.3, DIM + 0.06));
+    });
+    renderPanel();
+  }
+
+  // ---- panel ----
+  function chipStyle(color) {
+    return 'background:' + color + '2e;border:1px solid ' + color + ';';
+  }
+  function esc(str) {
+    return String(str).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+
+  function renderPanel() {
+    var panel = document.getElementById('panel');
+    if (state.core == null) {
+      panel.innerHTML =
+        '<div class="panel-label">Your selection</div>' +
+        '<div class="empty-ring"></div>' +
+        '<p class="empty-lead">Tap a core emotion in the centre of the wheel to begin.</p>' +
+        '<p class="empty-sub">The wheel will guide you outward to more specific feelings as you go.</p>';
+      return;
+    }
+
+    var crumbs = [];
+    var leafName, leafColor, leafDef, hint;
+    var cn = CORES[state.core][0];
+    crumbs.push({ label: cn, color: COLORS[state.core].c });
+    leafName = cn; leafColor = COLORS[state.core].c; leafDef = DEFS[cn] || '';
+    hint = 'Choose a more specific feeling in the middle ring.';
+    if (state.sec != null) {
+      var sn = CORES[state.core][1][state.sec][0];
+      crumbs.push({ label: sn, color: COLORS[state.core].s });
+      leafName = sn; leafColor = COLORS[state.core].s; leafDef = DEFS[sn] || '';
+      hint = 'Pick the precise feeling in the outer ring.';
+      if (state.ter != null) {
+        var tn = CORES[state.core][1][state.sec][1][state.ter];
+        crumbs.push({ label: tn, color: COLORS[state.core].t });
+        leafName = tn; leafColor = COLORS[state.core].t; leafDef = DEFS[tn] || '';
+        hint = '';
+      }
+    }
+
+    var crumbHtml = crumbs.map(function (c) {
+      return '<span class="chip" style="' + chipStyle(c.color) + '">' + esc(c.label) + '</span>';
+    }).join('');
+
+    var hintHtml = hint ? '<p class="hint"><b>&rarr;</b><span>' + esc(hint) + '</span></p>' : '';
+
+    panel.innerHTML =
+      '<div class="panel-label">Your selection</div>' +
+      '<div class="crumbs">' + crumbHtml + '</div>' +
+      '<div class="leaf-row"><span class="leaf-dot" style="background:' + leafColor + ';box-shadow:0 0 0 3px ' + leafColor + '33;"></span>' +
+      '<h2 class="leaf-name">' + esc(leafName) + '</h2></div>' +
+      '<p class="leaf-def">' + esc(leafDef) + '</p>' +
+      hintHtml +
+      '<button class="reset" type="button" id="resetBtn">Reset selection</button>';
+
+    document.getElementById('resetBtn').addEventListener('click', reset);
+  }
+
+  // ---- init ----
+  buildSVG();
+  update();
+})();
+</script>
+</body>
+</html>
